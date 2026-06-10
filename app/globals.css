@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: #0a0a0b;
+  color: #e8e8ee;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #3a3a46;
+  color: #ffffff;
+}
+
+@layer components {
+  .panel {
+    @apply bg-ink-900 border border-ink-700 rounded-xl shadow-panel;
+  }
+  .panel-tight {
+    @apply bg-ink-800 border border-ink-700 rounded-lg;
+  }
+  .input {
+    @apply bg-ink-800 border border-ink-700 rounded-md px-3 py-2 text-sm text-ink-100 placeholder:text-ink-400 focus:outline-none focus:border-ink-500 focus:ring-1 focus:ring-ink-500 transition;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-ink-100 text-ink-950 hover:bg-white;
+  }
+  .btn-secondary {
+    @apply btn bg-ink-700 text-ink-100 hover:bg-ink-600 border border-ink-600;
+  }
+  .btn-ghost {
+    @apply btn text-ink-200 hover:bg-ink-700;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium;
+  }
+  .chip-amber {
+    @apply chip bg-amber-flagDim text-amber-flag;
+  }
+  .chip-red {
+    @apply chip bg-danger-flagDim text-danger-flag;
+  }
+  .chip-muted {
+    @apply chip bg-ink-700 text-ink-300;
+  }
+  .chip-ok {
+    @apply chip bg-[#13261a] text-ok-flag;
+  }
+  .label {
+    @apply text-[11px] font-medium uppercase tracking-wider text-ink-400;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #26262f;
+    border-radius: 999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}

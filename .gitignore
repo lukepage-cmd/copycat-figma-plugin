@@ -11,3 +11,7 @@ next-env.d.ts
 # Figma plugin build artifacts
 figma-plugin/dist/
 figma-plugin/node_modules/
+
+# Local tool state
+.claude/
+.superpowers/

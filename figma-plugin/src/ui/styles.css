@@ -1,0 +1,86 @@
+* {
+  box-sizing: border-box;
+}
+body,
+html {
+  margin: 0;
+  padding: 0;
+  font: 12px/1.5 -apple-system, sans-serif;
+  color: #222;
+}
+.panel {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hint {
+  color: #888;
+}
+.count {
+  color: #444;
+  font-weight: 500;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field span {
+  color: #666;
+  font-size: 11px;
+}
+.field input {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font: inherit;
+}
+.field input:focus {
+  outline: 2px solid #18a0fb;
+  border-color: #18a0fb;
+}
+button {
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+button:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button.primary {
+  background: #18a0fb;
+  color: white;
+  border-color: #18a0fb;
+}
+button.primary:hover:not(:disabled) {
+  background: #0d8de4;
+}
+.ok {
+  color: #14a96f;
+  font-weight: 500;
+}
+.warn {
+  color: #c08300;
+}
+.skipped {
+  background: #fff7e6;
+  border: 1px solid #ffd58a;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.skipped ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+.skipped summary {
+  cursor: pointer;
+  color: #c08300;
+}

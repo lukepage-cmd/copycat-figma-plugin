@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
-import type { FromSandbox, SelectionItem, SkipDetail, ToSandbox } from '../messages';
+import type {
+  FromSandbox,
+  SelectionItem,
+  SkipDetail,
+  ShrunkDetail,
+  ToSandbox,
+} from '../messages';
 
 const PROXY_URL = 'http://localhost:3000/api/translate';
 
-type DoneState = { translated: number; skipped: SkipDetail[] };
+type DoneState = { translated: number; skipped: SkipDetail[]; shrunk: ShrunkDetail[] };
 type Mode =
   | { kind: 'input' }
   | { kind: 'loading' }
@@ -20,6 +26,8 @@ const SKIP_TEXT: Record<string, string> = {
   'empty-text': 'empty text',
 };
 
+const fmtPt = (n: number) => `${Math.round(n * 10) / 10}pt`;
+
 export function App() {
   const [items, setItems] = useState<SelectionItem[]>([]);
   const [language, setLanguage] = useState('');
@@ -31,7 +39,14 @@ export function App() {
       if (!msg) return;
       if (msg.type === 'selection') setItems(msg.items);
       if (msg.type === 'apply-result') {
-        setMode({ kind: 'done', result: { translated: msg.translated, skipped: msg.skipped } });
+        setMode({
+          kind: 'done',
+          result: {
+            translated: msg.translated,
+            skipped: msg.skipped,
+            shrunk: msg.shrunk,
+          },
+        });
       }
       if (msg.type === 'apply-error') {
         setMode({ kind: 'error', message: msg.message });
@@ -109,6 +124,20 @@ export function App() {
           ✓ Translated {mode.result.translated} layer
           {mode.result.translated === 1 ? '' : 's'}.
         </p>
+        {mode.result.shrunk.length > 0 && (
+          <div className="info">
+            <p>
+              ↘ {mode.result.shrunk.length} shrunk to fit:
+            </p>
+            <ul>
+              {mode.result.shrunk.map((s) => (
+                <li key={s.id}>
+                  <strong>{s.name}</strong> — {fmtPt(s.from)} → {fmtPt(s.to)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {mode.result.skipped.length > 0 && (
           <div className="skipped">
             <p className="warn">⚠ {mode.result.skipped.length} skipped:</p>

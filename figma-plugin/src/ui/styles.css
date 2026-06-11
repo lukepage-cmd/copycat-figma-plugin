@@ -84,3 +84,14 @@ button.primary:hover:not(:disabled) {
   cursor: pointer;
   color: #c08300;
 }
+.info {
+  background: #eaf6ff;
+  border: 1px solid #b3dcff;
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #1f5fa6;
+}
+.info ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}

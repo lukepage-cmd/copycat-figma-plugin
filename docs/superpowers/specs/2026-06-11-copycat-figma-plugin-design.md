@@ -1,4 +1,4 @@
-# Lingo Figma Plugin — Design
+# CopyCat Figma Plugin — Design
 
 **Author:** Luke Page
 **Date:** 2026-06-11
@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-**Lingo** is a Figma plugin that lets a designer translate selected text layers into any language via Claude, in-place, without leaving Figma. It exists as a take-home exercise for the ElevenLabs design team to assess; the design optimises for "the reviewer can install it and translate something in under a minute."
+**CopyCat** is a Figma plugin that lets a designer translate selected text layers into any language via Claude, in-place, without leaving Figma. It exists as a take-home exercise for the ElevenLabs design team to assess; the design optimises for "the reviewer can install it and translate something in under a minute."
 
 The product is a Figma plugin paired with a small Vercel-hosted Anthropic proxy. The plugin runs natively inside Figma (reading and writing text nodes via the Plugin API); the proxy holds the Anthropic API key safely server-side.
 
@@ -40,10 +40,10 @@ There is no separate web app, no Figma personal-access-token to provision, no UR
 ```
                           FIGMA
    ┌──────────────────────────────────────────┐
-   │  1. Plugins → Lingo                      │
+   │  1. Plugins → CopyCat                      │
    │                                          │
    │  ┌────────────────────────────────┐     │
-   │  │  Lingo                         │     │
+   │  │  CopyCat                         │     │
    │  │  Select text layers to begin.  │  ◄── empty state
    │  └────────────────────────────────┘     │
    │                                          │
@@ -83,7 +83,7 @@ The **Translate** button is disabled until two conditions are met:
 ```
    FIGMA                                          VERCEL
    ┌──────────────────────────┐                  ┌──────────────────────────┐
-   │  Lingo plugin            │                  │  /api/translate          │
+   │  CopyCat plugin            │                  │  /api/translate          │
    │  ─────────────           │                  │  ─────────────           │
    │  code.ts                 │                  │  - rate limit (global    │
    │  (Plugin API: read       │                  │    + per-IP)             │
@@ -157,9 +157,9 @@ Shows:
 
 - **No text layers selected:** "Select text layers to begin." (Empty state; happens at plugin open or when selection is cleared.)
 - **Selection includes non-text:** non-text layers are silently ignored. The count reflects text layers only.
-- **Proxy unreachable / network error:** "Couldn't reach Lingo's translation service. Check your connection and try again."
+- **Proxy unreachable / network error:** "Couldn't reach CopyCat's translation service. Check your connection and try again."
 - **Proxy returns 429 (rate limit hit):** "Daily translation limit reached. Try again tomorrow." (Should be very rare for the reviewer audience.)
-- **Proxy returns 400 (too many layers):** "Lingo can translate up to 50 layers at a time. Please select fewer and try again."
+- **Proxy returns 400 (too many layers):** "CopyCat can translate up to 50 layers at a time. Please select fewer and try again."
 - **Anthropic returns an error / nonsense:** the entire batch goes into "skipped: translation failed". The designer can re-try.
 
 ## 6. Proxy behaviour, in detail
@@ -205,7 +205,7 @@ Global daily limit (500/day) and per-IP hourly limit (100/hr) implemented as an 
 
 **The real cost backstop is the $50 hard cap set in the Anthropic console**, not the in-memory rate limit. The rate limit is the soft guard; the Anthropic cap is the hard one. If a bug or unexpected behaviour somehow burned through the rate limit, Anthropic itself stops billing at $50.
 
-Upgrade path: if Lingo ever needs to defend the rate limit hard, replace the in-memory `Map` with Vercel KV (the route stays otherwise identical). Out of scope for v1.
+Upgrade path: if CopyCat ever needs to defend the rate limit hard, replace the in-memory `Map` with Vercel KV (the route stays otherwise identical). Out of scope for v1.
 
 ### 6.4 What gets retired from the existing codebase
 
@@ -241,14 +241,14 @@ These are kept:
 ├── lib/types.ts                          ← KEEP
 ├── lib/formatting.ts                     ← KEEP
 ├── README.md                             ← rewritten — install + invite-free use
-└── docs/superpowers/specs/2026-06-11-lingo-figma-plugin-design.md  ← this file
+└── docs/superpowers/specs/2026-06-11-copycat-figma-plugin-design.md  ← this file
 ```
 
 ## 8. README and distribution
 
 The README is part of the deliverable. It should include:
 
-1. **What Lingo does** — one paragraph, one screenshot.
+1. **What CopyCat does** — one paragraph, one screenshot.
 2. **Install** — step-by-step: clone the repo, `npm install`, `npm run build:plugin`, then in Figma: `Plugins → Development → Import plugin from manifest`, point at `figma-plugin/manifest.json`.
 3. **Use** — three lines: select text layers, type a language, click Translate.
 4. **How it works** — short architecture diagram (the one in §4 above).
@@ -269,7 +269,7 @@ The README is part of the deliverable. It should include:
 | Font not installed in Figma | Skip; report: "font not loaded: <FontName>". |
 | Layer locked | Skip; report: "layer locked". |
 | > 50 layers selected | UI catches this before sending: "Up to 50 layers at a time." |
-| Network failure to proxy | Toast: "Couldn't reach Lingo's translation service. Try again." |
+| Network failure to proxy | Toast: "Couldn't reach CopyCat's translation service. Try again." |
 | Proxy returns 429 | "Daily translation limit reached. Try again tomorrow." |
 | Claude returns malformed JSON | Tool-use schema prevents this; if it still happens, surface as full-batch failure with retry. |
 | Claude can't translate a specific string | Server includes it in `skipped` with reason "translation failed". |

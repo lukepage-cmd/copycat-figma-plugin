@@ -1,4 +1,4 @@
-# Lingo
+# CopyCat
 
 A Figma plugin that translates selected text layers into any language via Claude. In-place. One click after selection.
 
@@ -7,7 +7,7 @@ Built as a take-home exercise for the ElevenLabs design team.
 ## What it does
 
 1. Select text layers in Figma (cmd-click to add multiple).
-2. Open `Plugins → Lingo`.
+2. Open `Plugins → CopyCat`.
 3. Type a target language ("French", "Brazilian Portuguese", "informal Japanese").
 4. Click **Translate**.
 
@@ -18,7 +18,7 @@ The text changes in place. Cmd-Z reverts it. To translate to a different languag
 ```
    FIGMA                                          VERCEL
    ┌──────────────────────────┐                  ┌──────────────────────────┐
-   │  Lingo plugin            │                  │  /api/translate          │
+   │  CopyCat plugin            │                  │  /api/translate          │
    │   - code.ts (sandbox)    │                  │   - in-memory rate limit │
    │   - React UI panel       │  ──POST JSON──►  │   - max 50 layers/req    │
    │                          │  ◄──JSON array── │   - Claude Haiku 4.5     │
@@ -35,7 +35,7 @@ Two components, one network call per translation request. No database. No persis
 
 ```bash
 git clone <this-repo>
-cd lingo
+cd copycat
 npm install
 cd figma-plugin && npm install && npm run build && cd ..
 
@@ -50,7 +50,7 @@ In Figma:
 1. Open Figma desktop.
 2. `Menu → Plugins → Development → Import plugin from manifest…`
 3. Pick `figma-plugin/manifest.json` from this repo.
-4. Run via `Menu → Plugins → Development → Lingo`.
+4. Run via `Menu → Plugins → Development → CopyCat`.
 
 For a Vercel-hosted version, deploy with `npx vercel` and update `PROXY_URL` in `figma-plugin/src/ui/App.tsx` to point at the deployment, then rebuild the plugin.
 
@@ -60,7 +60,7 @@ For a Vercel-hosted version, deploy with `npx vercel` and update `PROXY_URL` in 
 
 - **Why Claude Haiku 4.5 instead of Sonnet or Opus.** Translation of ad copy is a bounded task. Haiku 4.5 handles it well at roughly $0.002 per ad — about a fifth of Sonnet, about a twentieth of Opus. The model is overridable via `ANTHROPIC_MODEL` if needed.
 
-- **Why no per-user authentication.** The audience is a small known reviewer group. Per-user codes would add setup friction with no security benefit at this scale. The proxy uses in-memory rate limits (500 requests/day global, 100/hour per IP) and a hard cap configured in the Anthropic console as the real cost backstop. The trade-off is described honestly in `docs/superpowers/specs/2026-06-11-lingo-figma-plugin-design.md` §6.3.
+- **Why no per-user authentication.** The audience is a small known reviewer group. Per-user codes would add setup friction with no security benefit at this scale. The proxy uses in-memory rate limits (500 requests/day global, 100/hour per IP) and a hard cap configured in the Anthropic console as the real cost backstop. The trade-off is described honestly in `docs/superpowers/specs/2026-06-11-copycat-figma-plugin-design.md` §6.3.
 
 - **Why no in-plugin review table.** The plugin panel is ~400px wide; the Figma canvas is 1080px+. Reviewing translations visually on the canvas is strictly better than reviewing them in a sidebar. The plugin reports counts and lists any skipped layers (font missing, layer locked, mixed styling); visual review happens in Figma itself. Cmd-Z is the safety net.
 
@@ -98,8 +98,8 @@ For a Vercel-hosted version, deploy with `npx vercel` and update `PROXY_URL` in 
 │   └── dist/                         ← build output (gitignored)
 └── docs/
     └── superpowers/
-        ├── specs/2026-06-11-lingo-figma-plugin-design.md
-        └── plans/2026-06-11-lingo-figma-plugin.md
+        ├── specs/2026-06-11-copycat-figma-plugin-design.md
+        └── plans/2026-06-11-copycat-figma-plugin.md
 ```
 
 ## Scripts

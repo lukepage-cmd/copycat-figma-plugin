@@ -1,4 +1,4 @@
-# Lingo Figma Plugin Implementation Plan
+# CopyCat Figma Plugin Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -105,11 +105,11 @@ figma-plugin/node_modules/
 
 - [ ] **Step 5: Replace app/layout.tsx with a minimal layout**
 
-Since `app/page.tsx` was deleted, the layout is now serving nothing. Replace with a tiny "this is the Lingo translation proxy" placeholder:
+Since `app/page.tsx` was deleted, the layout is now serving nothing. Replace with a tiny "this is the CopyCat translation proxy" placeholder:
 
 ```tsx
 // app/layout.tsx
-export const metadata = { title: 'Lingo Proxy' };
+export const metadata = { title: 'CopyCat Proxy' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -129,8 +129,8 @@ And create a tiny `app/page.tsx`:
 export default function Page() {
   return (
     <main>
-      <h1>Lingo Translation Proxy</h1>
-      <p>This service powers the Lingo Figma plugin. The translation API lives at <code>/api/translate</code>.</p>
+      <h1>CopyCat Translation Proxy</h1>
+      <p>This service powers the CopyCat Figma plugin. The translation API lives at <code>/api/translate</code>.</p>
     </main>
   );
 }
@@ -720,8 +720,8 @@ Expected:
 
 ```json
 {
-  "name": "Lingo",
-  "id": "com.lukepage.lingo",
+  "name": "CopyCat",
+  "id": "com.lukepage.copycat",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/index.html",
@@ -731,7 +731,7 @@ Expected:
       "http://localhost:3000",
       "https://*.vercel.app"
     ],
-    "reasoning": "Calls the Lingo translation proxy hosted on Vercel."
+    "reasoning": "Calls the CopyCat translation proxy hosted on Vercel."
   }
 }
 ```
@@ -742,7 +742,7 @@ Expected:
 
 ```json
 {
-  "name": "lingo-figma-plugin",
+  "name": "copycat-figma-plugin",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -827,7 +827,7 @@ export default defineConfig({
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Lingo</title>
+    <title>CopyCat</title>
   </head>
   <body>
     <div id="root"></div>
@@ -1398,7 +1398,7 @@ In Figma:
 1. Open any file (or create a test file with a few text layers).
 2. Menu → `Plugins → Development → Import plugin from manifest…`
 3. Pick `~/Desktop/claude-work/figma-plugin/manifest.json`
-4. Menu → `Plugins → Development → Lingo`
+4. Menu → `Plugins → Development → CopyCat`
 
 Expected: the plugin panel opens.
 
@@ -1445,14 +1445,14 @@ git commit -m "fix: small adjustments from end-to-end testing"
 - [ ] **Step 1: Replace README.md**
 
 ```markdown
-# Lingo
+# CopyCat
 
 A Figma plugin that translates selected text layers into any language via Claude. In-place. One click after selection.
 
 ## What it does
 
 1. Select text layers in Figma (cmd-click multiple).
-2. Open `Plugins → Lingo`.
+2. Open `Plugins → CopyCat`.
 3. Type a target language ("French", "Brazilian Portuguese", "informal Japanese").
 4. Click Translate.
 
@@ -1463,7 +1463,7 @@ The text changes in place. Cmd-Z reverts it.
 ```
    FIGMA                                          VERCEL
    ┌──────────────────────────┐                  ┌──────────────────────────┐
-   │  Lingo plugin            │                  │  /api/translate          │
+   │  CopyCat plugin            │                  │  /api/translate          │
    │   - code.ts (sandbox)    │                  │   - rate limit           │
    │   - React UI panel       │  ──POST JSON──►  │   - max 50 layers/req    │
    │                          │  ◄──JSON array── │   - Claude Haiku 4.5     │
@@ -1477,7 +1477,7 @@ Prerequisites: Node 20+, Figma desktop app, Anthropic API key.
 
 ```bash
 git clone <this-repo>
-cd lingo-figma-plugin
+cd copycat-figma-plugin
 npm install
 cd figma-plugin && npm install && npm run build && cd ..
 
@@ -1490,7 +1490,7 @@ npm run dev  # starts the translation proxy on localhost:3000
 In Figma:
 1. `Plugins → Development → Import plugin from manifest…`
 2. Pick `figma-plugin/manifest.json` from this repo.
-3. Run via `Plugins → Development → Lingo`.
+3. Run via `Plugins → Development → CopyCat`.
 
 ## Design decisions worth knowing
 
@@ -1545,7 +1545,7 @@ Expected: no errors.
 - [ ] **Step 3: Tag the v1 build**
 
 ```bash
-git tag v0.1.0 -m "Lingo v0.1.0 — initial assessment build"
+git tag v0.1.0 -m "CopyCat v0.1.0 — initial assessment build"
 ```
 
 - [ ] **Step 4: Confirm everything is committed**

@@ -1,6 +1,6 @@
 {
-  "name": "Lingo",
-  "id": "com.lukepage.lingo",
+  "name": "CopyCat",
+  "id": "com.lukepage.copycat",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/index.html",
@@ -10,6 +10,6 @@
       "http://localhost:3000",
       "https://*.vercel.app"
     ],
-    "reasoning": "Calls the Lingo translation proxy hosted on Vercel."
+    "reasoning": "Calls the CopyCat translation proxy hosted on Vercel."
   }
 }

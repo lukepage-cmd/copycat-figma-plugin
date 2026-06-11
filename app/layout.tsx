@@ -1,4 +1,4 @@
-export const metadata = { title: 'Lingo Proxy' };
+export const metadata = { title: 'CopyCat Proxy' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

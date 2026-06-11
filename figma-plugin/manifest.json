@@ -8,7 +8,7 @@
   "networkAccess": {
     "allowedDomains": [
       "http://localhost:3000",
-      "https://*.vercel.app"
+      "https://claude-work-blush.vercel.app"
     ],
     "reasoning": "Calls the CopyCat translation proxy hosted on Vercel."
   }

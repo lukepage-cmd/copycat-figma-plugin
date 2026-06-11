@@ -7,7 +7,7 @@ import type {
   ToSandbox,
 } from '../messages';
 
-const PROXY_URL = 'http://localhost:3000/api/translate';
+const PROXY_URL = 'https://claude-work-blush.vercel.app/api/translate';
 
 type DoneState = { translated: number; skipped: SkipDetail[]; shrunk: ShrunkDetail[] };
 type Mode =

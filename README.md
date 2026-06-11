@@ -29,28 +29,42 @@ The text changes in place. Cmd-Z reverts it. To translate to a different languag
 
 Two components, one network call per translation request. No database. No persistent storage. No Figma access tokens — the plugin runs inside Figma's sandbox and has native file access.
 
-## Install (development plugin)
+## Install — recommended (30 seconds, no command line)
 
-**Prerequisites:** Node 20+, Figma desktop app, an Anthropic API key.
+The plugin is published as a downloadable zip under [Releases](https://github.com/lukepage-cmd/copycat-figma-plugin/releases). It points at a hosted translation proxy (https://claude-work-blush.vercel.app/api/translate), so reviewers don't need to run anything locally.
+
+1. Download [`copycat-figma-plugin-v0.1.0.zip`](https://github.com/lukepage-cmd/copycat-figma-plugin/releases/latest) from the latest release.
+2. Unzip it anywhere on your machine.
+3. Open Figma desktop. (Plugin development isn't supported in the browser version.)
+4. Open the **Plugins & widgets** panel — bottom-right toolbar icon, or `Cmd+Alt+P`.
+5. Switch the dropdown on the right to **Development**.
+6. Click **Import from manifest…** and pick `copycat-figma-plugin/manifest.json` from the unzipped folder.
+7. Run via `Plugins & widgets → Development → CopyCat`.
+
+## Install — from source (for code review)
+
+If you'd rather build from the source:
+
+**Prerequisites:** Node 20+, Figma desktop, optionally an Anthropic API key (only if you want to run the proxy locally instead of the hosted one).
 
 ```bash
-git clone <this-repo>
-cd copycat
+git clone https://github.com/lukepage-cmd/copycat-figma-plugin
+cd copycat-figma-plugin
 npm install
 cd figma-plugin && npm install && npm run build && cd ..
-
-cp .env.example .env.local
-# edit .env.local — set ANTHROPIC_API_KEY to your personal Anthropic key
-
-npm run dev   # starts the translation proxy on localhost:3000
 ```
 
-In Figma:
+Then `Plugins → Development → Import plugin from manifest…` and pick `figma-plugin/manifest.json`. Built-in source already points at the hosted proxy.
 
-1. Open Figma desktop.
-2. `Menu → Plugins → Development → Import plugin from manifest…`
-3. Pick `figma-plugin/manifest.json` from this repo.
-4. Run via `Menu → Plugins → Development → CopyCat`.
+To run the proxy yourself locally instead:
+
+```bash
+cp .env.example .env.local
+# edit .env.local — set ANTHROPIC_API_KEY to your personal Anthropic key
+npm run dev   # starts the proxy on localhost:3000
+```
+
+Then edit `PROXY_URL` in `figma-plugin/src/ui/App.tsx` to `http://localhost:3000/api/translate` and rebuild the plugin.
 
 For a Vercel-hosted version, deploy with `npx vercel` and update `PROXY_URL` in `figma-plugin/src/ui/App.tsx` to point at the deployment, then rebuild the plugin.
 

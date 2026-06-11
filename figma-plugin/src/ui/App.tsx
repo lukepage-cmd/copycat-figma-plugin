@@ -56,6 +56,21 @@ export function App() {
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
+  // Resize the plugin window to fit content. Figma supports dynamic resizing
+  // via figma.ui.resize(); we just measure the rendered root and pass the
+  // height to the sandbox, which clamps and applies.
+  useEffect(() => {
+    const root = document.getElementById('root');
+    if (!root) return;
+    const post = () => {
+      toParent({ type: 'resize', height: root.scrollHeight });
+    };
+    post();
+    const ro = new ResizeObserver(post);
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, [items.length, mode.kind]);
+
   const translatable = items.filter((i) => i.skipReason === null);
   const preSkipped = items.filter((i) => i.skipReason !== null);
   const canTranslate =
@@ -173,18 +188,29 @@ export function App() {
         {translatable.length === 1 ? '' : 's'} selected
         {preSkipped.length > 0 && ` (${preSkipped.length} will be skipped)`}
       </p>
-      <label className="field">
-        <span>Translate to</span>
-        <input
-          autoFocus
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          placeholder="French"
-        />
-      </label>
-      <button className="primary" disabled={!canTranslate} onClick={onTranslate}>
-        Translate
-      </button>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onTranslate();
+        }}
+      >
+        <label className="field">
+          <span>Translate to</span>
+          <input
+            autoFocus
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            placeholder="French"
+          />
+        </label>
+        <button
+          type="submit"
+          className="primary"
+          disabled={!canTranslate}
+        >
+          Translate
+        </button>
+      </form>
       {preSkipped.length > 0 && (
         <details className="skipped">
           <summary>{preSkipped.length} will be skipped</summary>

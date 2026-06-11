@@ -24,4 +24,5 @@ export type FromSandbox =
 
 export type ToSandbox =
   | { type: 'apply'; translations: { id: string; text: string }[] }
+  | { type: 'resize'; height: number }
   | { type: 'close' };

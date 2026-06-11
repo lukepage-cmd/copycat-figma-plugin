@@ -1,0 +1,17 @@
+# Lockfile is built against Intercom's corporate npm proxy on the dev
+# machine; Vercel can't reach those URLs. Excluding the lockfile makes
+# Vercel run a plain `npm install` from package.json against the public
+# registry on its own build machine.
+package-lock.json
+
+# Build artefacts — Vercel will regenerate these.
+.next
+
+# Local-only state
+.env*
+.claude
+.superpowers
+
+# Plugin source has its own build pipeline; the Vercel app is the
+# translation proxy only.
+figma-plugin

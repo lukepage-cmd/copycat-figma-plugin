@@ -11,13 +11,34 @@ function defaultClient(): Anthropic {
   return cached;
 }
 
-const BRAND_CONTEXT =
-  'ElevenLabs brand tone: confident, clean, direct, tech-forward, creator-focused. ' +
-  'Avoid formal or corporate language. Keep translations punchy and natural in the ' +
-  'target language — never literal.';
-
 type Input = { id: string; text: string };
 type Output = { translations: Input[]; skipped: { id: string; reason: string }[] };
+
+function buildSystemPrompt(language: string, stringCount: number): string {
+  return [
+    `You are a translation tool. Your single job is to translate ad copy into ${language}.`,
+    '',
+    'CONTRACT (strict):',
+    '- Call the submit_translations tool exactly once.',
+    `- The translations array MUST contain exactly ${stringCount} item(s) — one per input id.`,
+    '- Every input id MUST appear in the output. Never omit, skip, or refuse.',
+    '- Each item has an "id" (matching an input id verbatim) and a "text" (the translation).',
+    '',
+    'TRANSLATION STYLE:',
+    `- Translate the value of each "text" field into ${language}. Never translate the id.`,
+    '- Favour idiomatic, natural phrasing over literal word-for-word translation.',
+    '- Match the source\'s capitalisation pattern (ALL CAPS stays ALL CAPS, Title Case stays Title Case, lowercase stays lowercase).',
+    '- Preserve numbers, punctuation, currency symbols, and special characters.',
+    '- Preserve ONLY actual brand or product names you recognise (e.g. "ElevenLabs", "CopyCat", "Nike", "Spotify"). Translate every other word, including:',
+    '    • ALL_CAPS or snake_case strings — translate the words and keep the formatting (so "WIDTH_AND_HEIGHT" in German becomes "BREITE_UND_HÖHE").',
+    '    • Technical-sounding terms that are not brand names.',
+    '    • Acronyms that are not brand names.',
+    '  When in doubt, translate. Preserving non-brand words is incorrect.',
+    '- Keep the tone confident, direct, creator-focused — never corporate or formal.',
+    '- Do NOT add line breaks; layout handles reflow.',
+    `- Even if a source already happens to fit the target language, return a fresh ${language} translation.`,
+  ].join('\n');
+}
 
 export async function translate(
   language: string,
@@ -29,22 +50,11 @@ export async function translate(
   const response = await client.messages.create({
     model: DEFAULT_MODEL,
     max_tokens: 4096,
-    system: [
-      BRAND_CONTEXT,
-      '',
-      `You translate ad copy into ${language}.`,
-      'Rules:',
-      '- Translate only the value of each "text" field; never the "id".',
-      '- Preserve numbers, punctuation, currency symbols, and brand names.',
-      "- Match the source's capitalisation style (ALL CAPS stays ALL CAPS).",
-      '- Keep the tone punchy and natural; favour idiomatic over literal.',
-      '- Do NOT add line breaks; layout handles reflow.',
-      '- Return every input id. If you cannot translate one, omit it.',
-    ].join('\n'),
+    system: buildSystemPrompt(language, strings.length),
     tools: [
       {
         name: 'submit_translations',
-        description: 'Return the translated strings for each input id.',
+        description: `Return the translation of every input string into ${language}.`,
         input_schema: {
           type: 'object',
           properties: {
@@ -68,7 +78,9 @@ export async function translate(
     messages: [
       {
         role: 'user',
-        content: `Translate to ${language}:\n\n${JSON.stringify(strings, null, 2)}`,
+        content:
+          `Translate each of these into ${language}. Return all ${strings.length} via the tool.\n\n` +
+          JSON.stringify(strings, null, 2),
       },
     ],
   });
@@ -77,15 +89,33 @@ export async function translate(
   if (!toolUse || toolUse.type !== 'tool_use') {
     return {
       translations: [],
-      skipped: strings.map((s) => ({ id: s.id, reason: 'translation failed' })),
+      skipped: strings.map((s) => ({ id: s.id, reason: 'translation failed: model did not call the tool' })),
     };
   }
 
-  const input = toolUse.input as { translations: Input[] };
-  const returnedIds = new Set(input.translations.map((t) => t.id));
+  // Defensively validate the model's response shape. The schema *should*
+  // enforce this — sometimes it doesn't. Returning a graceful "all skipped"
+  // result is better than throwing a 500 on the caller.
+  const input = toolUse.input as { translations?: unknown };
+  if (!Array.isArray(input?.translations)) {
+    return {
+      translations: [],
+      skipped: strings.map((s) => ({ id: s.id, reason: 'translation failed: malformed response' })),
+    };
+  }
+
+  const validTranslations: Input[] = input.translations.filter(
+    (t): t is Input =>
+      t !== null &&
+      typeof t === 'object' &&
+      typeof (t as Input).id === 'string' &&
+      typeof (t as Input).text === 'string',
+  );
+
+  const returnedIds = new Set(validTranslations.map((t) => t.id));
   const skipped = strings
     .filter((s) => !returnedIds.has(s.id))
     .map((s) => ({ id: s.id, reason: 'translation failed' }));
 
-  return { translations: input.translations, skipped };
+  return { translations: validTranslations, skipped };
 }

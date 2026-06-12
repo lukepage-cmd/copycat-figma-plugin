@@ -82,6 +82,35 @@ describe('translate', () => {
     );
 
     expect(result.translations).toEqual([]);
-    expect(result.skipped).toEqual([{ id: 'a', reason: 'translation failed' }]);
+    expect(result.skipped).toEqual([
+      { id: 'a', reason: 'translation failed: model did not call the tool' },
+    ]);
+  });
+
+  it('skips everything if tool input.translations is not an array', async () => {
+    const fakeClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [
+            {
+              type: 'tool_use',
+              name: 'submit_translations',
+              input: { translations: null },
+            },
+          ],
+        }),
+      },
+    };
+
+    const result = await translate(
+      'French',
+      [{ id: 'a', text: 'Hello' }],
+      fakeClient as never,
+    );
+
+    expect(result.translations).toEqual([]);
+    expect(result.skipped).toEqual([
+      { id: 'a', reason: 'translation failed: malformed response' },
+    ]);
   });
 });

@@ -46,6 +46,55 @@ form {
   outline: 2px solid #18a0fb;
   border-color: #18a0fb;
 }
+.ghost-input {
+  position: relative;
+}
+.ghost-input input,
+.ghost-overlay {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  font-kerning: auto;
+  font-variant: normal;
+}
+/* Make the input invisible (color transparent) but keep the caret black so
+   the user can see where they're typing. The overlay below renders the actual
+   visible text — typed prefix in solid, suggestion suffix in semi-opaque. */
+.ghost-input input {
+  width: 100%;
+  box-sizing: border-box;
+  color: transparent;
+  caret-color: #222;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+}
+.ghost-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  pointer-events: none;
+  white-space: pre;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+.ghost-typed {
+  color: #222;
+}
+.ghost-tail {
+  color: rgba(0, 0, 0, 0.28);
+}
+.ghost-placeholder {
+  color: #888;
+}
 button {
   padding: 8px 14px;
   border: 1px solid #ddd;

@@ -361,6 +361,12 @@ export function App() {
         {translatable.length === 1 ? '' : 's'} selected
         {preSkipped.length > 0 && ` (${preSkipped.length} will be skipped)`}
       </p>
+      {translatable.length > 1 && (
+        <p className="caveat">
+          Multi-select: layers of similar size scale together. For mixed
+          sizes, translate one layer at a time for best results.
+        </p>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();

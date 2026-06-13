@@ -29,12 +29,21 @@ function buildSystemPrompt(language: string, stringCount: number): string {
     '- Favour idiomatic, natural phrasing over literal word-for-word translation.',
     '- Match the source\'s capitalisation pattern (ALL CAPS stays ALL CAPS, Title Case stays Title Case, lowercase stays lowercase).',
     '- Preserve numbers, punctuation, currency symbols, and special characters.',
-    '- Preserve ONLY actual brand or product names you recognise (e.g. "ElevenLabs", "CopyCat", "Nike", "Spotify"). Translate every other word, including:',
+    '- Preserve ONLY registered COMPANY or TRADEMARK names (e.g. "ElevenLabs", "CopyCat", "Nike", "Spotify", "Apple"). Translate everything else, including:',
+    '    • UI labels, headings, and section titles INSIDE a product or app — these are interface text, not brand names. Example: "Instant Voice Clone" is a UI heading describing a feature, NOT a brand. Translate it (German: "Sofortiger Sprachklon", French: "Clone vocal instantané").',
+    '    • Feature names and product capability descriptions (e.g. "Voice Clone", "Smart Compose", "Auto-save" — these describe what the feature does and should localise).',
     '    • ALL_CAPS or snake_case strings — translate the words and keep the formatting (so "WIDTH_AND_HEIGHT" in German becomes "BREITE_UND_HÖHE").',
-    '    • Technical-sounding terms that are not brand names.',
-    '    • Acronyms that are not brand names.',
-    '  When in doubt, translate. Preserving non-brand words is incorrect.',
+    '    • Technical-sounding terms, acronyms, and Title-Cased phrases that are not company/trademark names.',
+    '  When in doubt, translate. Only a registered company/product COMPANY name stays untranslated.',
     '- Keep the tone confident, direct, creator-focused — never corporate or formal.',
+    '- Use INFORMAL register where the target language distinguishes formal vs informal address. Modern consumer-tech brand voice is friendly and direct, never polite/distant:',
+    '    • French: tu / te / ton / votre→ton (NEVER vous / votre).',
+    '    • German: du / dein (NEVER Sie / Ihr).',
+    '    • Spanish: tú / tu (NEVER usted / su).',
+    '    • Italian: tu / tuo (NEVER Lei / Suo).',
+    '    • Portuguese: tu / teu in Portugal, você / seu in Brazil. NEVER o senhor / a senhora.',
+    '    • Dutch: je / jouw (NEVER u / uw).',
+    '  Same principle for any other language with a formal/informal split.',
     '- Do NOT add line breaks; layout handles reflow.',
     `- Even if a source already happens to fit the target language, return a fresh ${language} translation.`,
   ].join('\n');
@@ -50,6 +59,11 @@ export async function translate(
   const response = await client.messages.create({
     model: DEFAULT_MODEL,
     max_tokens: 4096,
+    // temperature: 0 makes the translation deterministic — same input
+    // produces the same translation across runs. Important for an
+    // assessment tool where the reviewer might re-translate the same
+    // layer multiple times and expect consistent results.
+    temperature: 0,
     system: buildSystemPrompt(language, strings.length),
     tools: [
       {

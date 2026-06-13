@@ -82,12 +82,53 @@ For a Vercel-hosted version, deploy with `npx vercel` and update `PROXY_URL` in 
 
 - **Personal Anthropic account.** Calls go through my personal Anthropic account (set via `ANTHROPIC_API_KEY` locally). I deliberately didn't use my employer's key for this assessment — interview work shouldn't mix with employer resources.
 
+## Usage caveats
+
+When you use CopyCat for the first time, these are the small frictions worth knowing up-front.
+
+### Multi-select behaviour
+
+- **Multi-select translates layers as a *visual group*.** All selected layers scale together so they remain visually consistent (e.g. three bullet items all shrink by the same proportion, not independently).
+- **Multi-select works best when the selected layers have similar font sizes.** A row of bullets, a paragraph of body copy, a set of equal-weight headings — these are siblings. The plugin clusters them automatically (layers within ~15% of each other's font size go in one bucket).
+- **For *mixed* font sizes (e.g. title + tagline), translate one layer at a time.** The clustering algorithm tries to handle mixed sizes by grouping similar-size layers separately, but for crisp results on a hierarchy, individual translation is best.
+
+### Manual touch-ups will sometimes be needed
+
+- **Box dimensions are sacred; font flexes.** The plugin will never grow a text box (that would cascade-shift surrounding layout). If a translation truly needs more space than the original box allows, the font shrinks. Designer reviews and decides whether to widen the box manually.
+- **Tight source boxes + expansion-heavy languages produce visibly small font.** A trust badge sized to 3 lines of English ("TRUSTED BY 1M+ LEADING CREATORS AND ENTERPRISES") becomes 4-5 lines in French ("DE CONFIANCE POUR PLUS DE 1M..."). To fit inside the original box height, the font shrinks ~40% (e.g. 14pt → 8.4pt). Legible but tight. *Designer fix in Figma: widen the badge, or accept the smaller font.*
+- **Button labels with tight hug-content boxes face the same issue.** A "Continue" button sized exactly to the English word's width can't accommodate "Continuer" at the same font size. Result: small font (sometimes hitting the absolute floor at ~9.6pt). *Designer fix: widen the button, or use a shorter translation like "Suivant" or "OK".*
+
+### Auto-layout containers
+
+- **Translated layers inside an auto-layout frame are hard to nudge manually** — Figma's auto-layout repositions children automatically. Two ways to fine-tune:
+  - Right-click the layer → **"Set position to absolute"** to free it from the auto-layout, then drag freely.
+  - Or adjust the *parent* auto-layout's gap/spacing for consistent results across all your localised artboards.
+
+### Font availability
+
+- **Brand fonts not installed on your machine are flagged and skipped** rather than substituted. The done screen tells you which layers were skipped and why. Install the brand font (or temporarily change to a system font) before re-running for those layers.
+
+### Multi-translation workflow on the same layer
+
+- **Each translation uses the layer's *current* text as the source.** To translate the same English layer into multiple languages, **cmd-Z back to English between cycles**, or duplicate the layer per language. (A v2 feature would persist the original source text in metadata to eliminate this.)
+
+### Style register (formality)
+
+- **CopyCat translates in the *informal* register by default** (French *tu*, German *du*, Spanish *tú*, Italian *tu*) — the modern consumer-tech brand voice. If your campaign needs *formal* register, edit the translated text manually after the plugin completes its run.
+
+### Reproducibility
+
+- **The same English source + same target language = the same translation, every run.** The plugin pins `temperature: 0` so Claude's output is deterministic.
+- **Mixed-styling text nodes are skipped.** A text node with bold-in-the-middle would lose styling on a single `node.characters = ...` write. Preserving styled segments via `setRangeFills` etc. is a real feature, deferred to v2.
+
 ## What's deferred to v2
 
+- **Transcreation mode for tight slot text.** For buttons, badges, and other compact UI elements, ask Claude for the *shortest equivalent* rather than the most literal translation. "Continue" → "OK" / "Suivant" instead of "Continuer"; "TRUSTED BY 1M+ LEADING CREATORS AND ENTERPRISES" → "1M+ CRÉATEURS DE CONFIANCE" instead of the full literal. This is what professional localizers actually do (it has a name: *transcreation*). The plugin would detect short + tight + ALL CAPS as a signal and pass a "brevity mode" flag to the proxy, which uses a different prompt asking for compact equivalents.
 - **Figma Variables / mode-based language switching.** A single file with one EN/FR/ES toggle instead of separate artboards per language. This is the more "professional localization tool" architecture; v1 is the "smart-replace" version.
 - **Multi-language batch.** Type "French, Spanish, German" and produce three duplicates in one run.
 - **Brand glossary.** Fixed translations for known terms ("voice clone" → curated French phrase).
 - **Translation memory.** Re-running on the same string returns the previously-confirmed translation with override option.
+- **Persisted original source text.** Eliminate multi-translation drift by storing the *first translation*'s source text in pluginData and always retranslating from there.
 
 ## Repository layout
 

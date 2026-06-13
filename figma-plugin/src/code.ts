@@ -27,18 +27,26 @@ const REASON_TEXT: Record<string, string> = {
 //     below readability for the sake of fitting.
 //   ≥ 40pt (headlines / hero) → max 30% shrink. Headlines flex more, but
 //     30% is still a designer-credible amount — 50% looked broken.
-// Floors are deliberately conservative — we'd rather a long translation
-// overflow its box slightly and need a designer nudge than crush the visual
-// hierarchy by aggressively shrinking subtitles relative to headlines.
-//   < 40pt: max 15% shrink (small copy stays legible).
+// Floors give the shrink algorithm room to handle extreme translations
+// (very small text + very long translation = needs aggressive shrink to
+// avoid overflow). Single-shot calculation only shrinks *as much as
+// needed*, so a low floor doesn't make normal cases more aggressive —
+// it just stops them from hitting the floor unnecessarily.
+//   < 40pt: max 40% shrink (small copy + long languages can need this,
+//     e.g. a TRUSTED BY badge translating from 3 lines of English to 5
+//     lines of French at the same font size).
 //   ≥ 40pt: max 30% shrink (headlines flex but don't get squashed).
-// If the translation is so long that 30% shrink isn't enough, we accept the
-// residual overflow rather than dropping further.
-const SHRINK_FLOOR_RATIO_SMALL = 0.85;
+const SHRINK_FLOOR_RATIO_SMALL = 0.6;
 const SHRINK_FLOOR_RATIO_LARGE = 0.7;
 const SHRINK_SIZE_TIER_BREAKPOINT = 40;
-const SHRINK_FLOOR_MIN_PT = 14;
+// Absolute minimum font size in points. Set low (8pt) so the algorithm
+// can handle extreme cases like small-caps trust badges where the
+// original is already 12-14pt and the translation needs aggressive
+// shrink. Single-shot calculation only goes this low when it has to —
+// the floor doesn't make normal cases more aggressive.
+const SHRINK_FLOOR_MIN_PT = 8;
 const SHRINK_MAX_REFINEMENT_ITERATIONS = 5;
+const SHRINK_MAX_GROW_ITERATIONS = 20;
 const OVERFLOW_TOLERANCE = 1.02; // accept 2% overflow without further shrinking
 
 // pluginData keys: we stamp every text node we touch with its TRUE original
@@ -139,12 +147,14 @@ function shrinkToFit(
     return originalFontSize;
   }
 
-  let iterations = 0;
+  // Shrink refinement: if single-shot was an underestimate (text re-wraps
+  // at the smaller size and still overflows), step down further.
+  let shrinkIterations = 0;
   while (
     (node.height > originalHeight * OVERFLOW_TOLERANCE ||
       node.width > widthBudget * OVERFLOW_TOLERANCE) &&
     current > floor &&
-    iterations < SHRINK_MAX_REFINEMENT_ITERATIONS
+    shrinkIterations < SHRINK_MAX_REFINEMENT_ITERATIONS
   ) {
     current = Math.max(floor, current - 1);
     try {
@@ -152,7 +162,36 @@ function shrinkToFit(
     } catch {
       break;
     }
-    iterations += 1;
+    shrinkIterations += 1;
+  }
+
+  // Grow-back: single-shot OVERSHRINKS when text wraps because the height
+  // ratio is non-linear. Example: "Continue" → "Continuer" makes text wrap
+  // from 1 line to 2 (ratio = 2), so single-shot shrinks to 50%. But at
+  // a smaller font the word fits on 1 line again. We grow back one point
+  // at a time, checking each step, to find the largest size that still
+  // fits within both height and width budgets.
+  let growIterations = 0;
+  while (current < originalFontSize && growIterations < SHRINK_MAX_GROW_ITERATIONS) {
+    const tryNext = Math.min(originalFontSize, current + 1);
+    if (tryNext === current) break;
+    try {
+      node.fontSize = tryNext;
+    } catch {
+      break;
+    }
+    if (
+      node.height > originalHeight * OVERFLOW_TOLERANCE ||
+      node.width > widthBudget * OVERFLOW_TOLERANCE
+    ) {
+      // Overflowed at the larger size — revert and stop.
+      try {
+        node.fontSize = current;
+      } catch {}
+      break;
+    }
+    current = tryNext;
+    growIterations += 1;
   }
 
   return current;
@@ -171,7 +210,22 @@ figma.ui.onmessage = async (msg: ToSandbox) => {
 
   const skipped: SkipDetail[] = [];
   const shrunk: ShrunkDetail[] = [];
-  let translated = 0;
+
+  // Two-pass apply for uniform-shrink-across-the-selection.
+  //
+  // First pass: validate, fit each layer independently, record the natural
+  // post-fit font size. Second pass: find the minimum shrink ratio across
+  // the whole selection and apply that ratio uniformly so all layers shrink
+  // by the same proportion. This preserves visual hierarchy when multiple
+  // sibling layers (like a row of bullet items) get translated together
+  // and some need more shrink than others.
+  type Prepared = {
+    nodeId: string;
+    node: TextNode;
+    original: OriginalSnapshot;
+    naturalFinalSize: number;
+  };
+  const prepared: Prepared[] = [];
 
   for (const t of msg.translations) {
     const node = figma.getNodeById(t.id);
@@ -199,9 +253,6 @@ figma.ui.onmessage = async (msg: ToSandbox) => {
       continue;
     }
 
-    // Use the TRUE original (captured on first ever translation), not the
-    // current state — current state may already be shrunk from a previous
-    // round. This is what lets EN → FR → EN return cleanly to original size.
     const original = getOrCaptureOriginal(node);
     if (!original) {
       skipped.push({
@@ -212,36 +263,27 @@ figma.ui.onmessage = async (msg: ToSandbox) => {
       continue;
     }
 
-    // Restore font to original before applying the new translation —
-    // ONLY if the current size differs. Skipping no-op writes keeps the
-    // undo stack short so a single cmd-Z reverts the visible translation
-    // rather than peeling back through invisible property changes.
     if (
       typeof node.fontSize === 'number' &&
       Math.abs(node.fontSize - original.fontSize) > 0.01
     ) {
       try {
         node.fontSize = original.fontSize;
-      } catch {
-        // Falls through — we still try the translation at current size.
-      }
+      } catch {}
     }
 
-    // For measurement, we want BOTH dimensions to reflect what the text
-    // actually needs — so we can detect overflow on either axis. Switch
-    // to WIDTH_AND_HEIGHT only if we're not already there, and only
-    // restore at the end if we actually switched.
-    const needsMeasureSwitch =
-      original.autoResize !== 'WIDTH_AND_HEIGHT' &&
-      node.textAutoResize !== 'WIDTH_AND_HEIGHT';
-    if (needsMeasureSwitch) {
-      node.textAutoResize = 'WIDTH_AND_HEIGHT';
+    if (node.textAutoResize !== 'HEIGHT') {
+      node.textAutoResize = 'HEIGHT';
+    }
+    if (Math.abs(node.width - original.width) > 0.5) {
+      try {
+        node.resize(original.width, node.height);
+      } catch {}
     }
 
     try {
       node.characters = t.text;
     } catch (e) {
-      if (needsMeasureSwitch) node.textAutoResize = original.autoResize;
       skipped.push({
         id: t.id,
         name: node.name,
@@ -250,43 +292,83 @@ figma.ui.onmessage = async (msg: ToSandbox) => {
       continue;
     }
 
-    // Width budget = how wide we're willing to let the box grow before
-    // shrinking the font. Fixed-box modes get no budget (must fit exactly).
-    // Auto-resize modes (WIDTH_AND_HEIGHT, HEIGHT) get a 25% growth budget —
-    // enough that most translations don't trigger shrink, but capping the
-    // sprawl of languages like Greek and Japanese that can be 30-50% wider.
-    const isFixedBox =
-      original.autoResize === 'NONE' || original.autoResize === 'TRUNCATE';
-    const widthGrowthAllowance = isFixedBox ? 1.0 : 1.25;
-    const widthBudget = original.width * widthGrowthAllowance;
-
-    if (
-      node.height > original.height * OVERFLOW_TOLERANCE ||
-      node.width > widthBudget * OVERFLOW_TOLERANCE
-    ) {
-      const finalSize = shrinkToFit(
+    // Fit this layer independently for now — second pass will apply
+    // uniform shrink if any sibling needed more.
+    let naturalFinalSize = original.fontSize;
+    if (node.height > original.height * OVERFLOW_TOLERANCE) {
+      naturalFinalSize = shrinkToFit(
         node,
         original.height,
-        widthBudget,
+        original.width,
         original.fontSize,
       );
-      if (finalSize < original.fontSize) {
+    }
+
+    prepared.push({ nodeId: t.id, node, original, naturalFinalSize });
+  }
+
+  // Second pass: cluster prepared layers by original font size and apply
+  // uniform shrink WITHIN each cluster. Layers within 15% of each other
+  // are treated as siblings (e.g. a row of bullets at 24pt); layers more
+  // than 15% apart are treated as different hierarchy levels (e.g. a 60pt
+  // headline + a 20pt tagline — different clusters, each scaled
+  // independently). This preserves visual consistency for siblings while
+  // not crushing a tagline just because a headline needed to shrink.
+  const CLUSTER_TOLERANCE = 0.15;
+  const sortedPrepared = [...prepared].sort(
+    (a, b) => a.original.fontSize - b.original.fontSize,
+  );
+  const clusters: Prepared[][] = [];
+  for (const p of sortedPrepared) {
+    const lastCluster = clusters[clusters.length - 1];
+    if (lastCluster) {
+      const ref = lastCluster[0]!.original.fontSize;
+      const diff = Math.abs(p.original.fontSize - ref) / ref;
+      if (diff <= CLUSTER_TOLERANCE) {
+        lastCluster.push(p);
+        continue;
+      }
+    }
+    clusters.push([p]);
+  }
+
+  for (const cluster of clusters) {
+    const clusterMinRatio = Math.min(
+      ...cluster.map((p) => p.naturalFinalSize / p.original.fontSize),
+    );
+
+    for (const p of cluster) {
+      const uniformSize = p.original.fontSize * clusterMinRatio;
+      if (uniformSize < p.naturalFinalSize - 0.1) {
+        try {
+          p.node.fontSize = uniformSize;
+        } catch {}
+      }
+
+      const finalSize = Math.min(p.naturalFinalSize, uniformSize);
+      if (finalSize < p.original.fontSize - 0.01) {
         shrunk.push({
-          id: t.id,
-          name: node.name,
-          from: original.fontSize,
+          id: p.nodeId,
+          name: p.node.name,
+          from: p.original.fontSize,
           to: finalSize,
         });
       }
-    }
 
-    if (needsMeasureSwitch && node.textAutoResize !== original.autoResize) {
-      node.textAutoResize = original.autoResize;
+      // Lock dimensions: NONE mode at exact original dimensions. Wrap
+      // computed during HEIGHT-mode apply is preserved.
+      p.node.textAutoResize = 'NONE';
+      try {
+        p.node.resize(p.original.width, p.original.height);
+      } catch {}
     }
-
-    translated += 1;
   }
 
-  const result: FromSandbox = { type: 'apply-result', translated, skipped, shrunk };
+  const result: FromSandbox = {
+    type: 'apply-result',
+    translated: prepared.length,
+    skipped,
+    shrunk,
+  };
   figma.ui.postMessage(result);
 };
